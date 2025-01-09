@@ -1,4 +1,8 @@
 import pyaudio
+from flask import Flask, Response
+
+# Flask App
+app = Flask(__name__)
 
 # Audio Configuration
 CHUNK = 1024
@@ -6,21 +10,20 @@ FORMAT = pyaudio.paInt16
 CHANNELS = 2
 RATE = 44100
 
-# Initialize PyAudio
 audio = pyaudio.PyAudio()
 
 # Open Audio Stream
 stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
 
-print("Audio stream started...")
+@app.route('/stream')
+def audio_stream():
+    def generate():
+        while True:
+            data = stream.read(CHUNK)
+            yield data
 
-try:
-    while True:
-        data = stream.read(CHUNK)
-        # For now, just print the raw audio length to verify the stream is working
-        print(f"Captured {len(data)} bytes of audio data.")
-except KeyboardInterrupt:
-    print("Stopping audio stream...")
-    stream.stop_stream()
-    stream.close()
-    audio.terminate()
+    return Response(generate(), mimetype="audio/x-wav")
+
+if __name__ == '__main__':
+    print("Starting audio stream server...")
+    app.run(host='0.0.0.0', port=5000)
